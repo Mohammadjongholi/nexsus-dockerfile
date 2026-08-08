@@ -1,0 +1,59 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install required packages
+RUN apt-get update && \
+    apt-get install -y \
+        openjdk-17-jdk \
+        wget \
+        curl \
+        unzip \
+        ca-certificates \
+        wine64 \
+        wine32 \
+        winbind \
+        && \
+    rm -rf /var/lib/apt/lists/*
+
+# -------------------------
+# Install Nexus Repository
+# -------------------------
+
+ENV NEXUS_VERSION=3.82.0
+ENV NEXUS_HOME=/opt/nexus
+ENV NEXUS_DATA=/nexus-data
+
+RUN wget -q \
+    https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz \
+    -O /tmp/nexus.tar.gz && \
+    mkdir -p /opt && \
+    tar -xzf /tmp/nexus.tar.gz -C /opt && \
+    mv /opt/nexus-${NEXUS_VERSION} ${NEXUS_HOME} && \
+    rm -f /tmp/nexus.tar.gz
+
+# Create nexus user
+RUN useradd -r -m -d /home/nexus nexus && \
+    mkdir -p ${NEXUS_DATA} && \
+    chown -R nexus:nexus ${NEXUS_HOME} ${NEXUS_DATA}
+
+# Nexus configuration
+RUN sed -i 's|^#run_as_user=.*|run_as_user="nexus"|' \
+    ${NEXUS_HOME}/bin/nexus.rc
+
+ENV INSTALL4J_JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+# -------------------------
+# Wine configuration
+# -------------------------
+
+ENV WINEPREFIX=/wine
+
+RUN mkdir -p /wine && \
+    chown -R nexus:nexus /wine
+
+# Ports
+EXPOSE 8081
+
+# Start Nexus
+CMD ["/opt/nexus/bin/nexus", "run"]
