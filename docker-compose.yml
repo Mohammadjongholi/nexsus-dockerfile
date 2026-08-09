@@ -1,0 +1,27 @@
+services:
+
+  nexus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: nexus-wine
+
+    restart: unless-stopped
+
+    ports:
+      - "8081:8081"
+      - "5901:5901"
+
+    environment:
+      VNC_PASSWORD: "ChangeMe123!"
+
+    volumes:
+      - nexus-data:/nexus-data
+      - wine-data:/wine
+
+volumes:
+  nexus-data:
+  wine-data:
+```
+
