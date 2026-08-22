@@ -1,27 +1,21 @@
 services:
-
-  nexus:
+  ubuntu-gui:
     build:
       context: .
       dockerfile: Dockerfile
 
-    container_name: nexus-wine
+    container_name: ubuntu-gui
+
+    ports:
+      - "5901:5901"
 
     restart: unless-stopped
 
-    ports:
-      - "8081:8081"
-      - "5901:5901"
-
     environment:
-      VNC_PASSWORD: "ChangeMe123!"
+      TZ: UTC
 
     volumes:
-      - nexus-data:/nexus-data
-      - wine-data:/wine
+      - gui_home:/home/guiuser
 
 volumes:
-  nexus-data:
-  wine-data:
-```
-
+  gui_home:
