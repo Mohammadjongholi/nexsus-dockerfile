@@ -1,278 +1,180 @@
-# Nexus Repository + Wine + XFCE + VNC
+# Ubuntu 24.04 + XFCE + Wine + TigerVNC
 
-A Docker/Podman image based on **Ubuntu 24.04** that runs **Sonatype Nexus Repository**, **Wine**, an **XFCE graphical desktop**, and **TigerVNC**.
+A containerized **Ubuntu 24.04 graphical desktop environment** with **XFCE**, **TigerVNC**, and **Wine**.
 
-This setup is designed for environments where a Windows `.exe` application needs to run inside a Linux container and be accessed through a graphical VNC session.
+This project is designed to run Windows `.exe` applications inside an Ubuntu container and provide access to the graphical desktop remotely through a VNC client.
+
+The container includes both **Wine 64-bit and 32-bit support**, making it suitable for testing and running many Windows applications that require a graphical environment.
+
+---
 
 ## Features
 
 * Ubuntu 24.04
-* Sonatype Nexus Repository 3.95.0-07
-* OpenJDK 17
-* Wine
-* Wine32 / Wine64
 * XFCE Desktop
-* TigerVNC
-* Persistent Nexus data
-* Persistent Wine environment
-* Docker Compose / Podman Compose
+* XFCE Terminal
+* TigerVNC Server
+* Wine 64-bit
+* Wine 32-bit
+* Winbind
+* DBus
+* Persistent GUI user home directory
+* VNC remote graphical access
 * Windows `.exe` application support
-* GUI access through VNC
+* Docker Compose support
+* Podman Compose compatible
+* Runs as a non-root user
+
+---
 
 ## Architecture
 
-                    ┌─────────────────────────────┐
-                    │       Windows Client        │
-                    │                             │
-                    │     VNC Viewer              │
-                    └──────────────┬──────────────┘
-                                   │
-                                   │ TCP 5901
-                                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Ubuntu 24.04 Container                   │
-│                                                             │
-│  ┌──────────────────┐       ┌────────────────────────────┐  │
-│  │   TigerVNC       │──────▶│       XFCE Desktop         │  │
-│  │   Port 5901      │       │                            │  │
-│  └──────────────────┘       │  ┌──────────────────────┐  │  │
-│                             │  │        Wine          │  │  │
-│                             │  │                      │  │  │
-│                             │  │    Windows .exe      │  │  │
-│                             │  └──────────────────────┘  │  │
-│                             └────────────────────────────┘  │
-│                                                             │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │                 Nexus Repository                      │  │
-│  │                     Port 8081                         │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-             │                              │
-             ▼                              ▼
-      nexus-data volume              wine-data volume
+```text
+                         VNC Client
+                    ┌──────────────────┐
+                    │ TigerVNC Viewer  │
+                    │ RealVNC / Remmina│
+                    └────────┬─────────┘
+                             │
+                          TCP 5901
+                             │
+                             ▼
+┌───────────────────────────────────────────────────────┐
+│                 Ubuntu 24.04 Container                │
+│                                                       │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │                 TigerVNC                        │  │
+│  │                  :5901                           │  │
+│  └───────────────────────┬─────────────────────────┘  │
+│                          │                            │
+│                          ▼                            │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │                    XFCE                         │  │
+│  │                                                 │  │
+│  │  ┌───────────────────────────────────────────┐  │  │
+│  │  │                    Wine                   │  │  │
+│  │  │                                           │  │  │
+│  │  │              7z2602.exe                   │  │  │
+│  │  │              Other EXE files              │  │  │
+│  │  └───────────────────────────────────────────┘  │  │
+│  └─────────────────────────────────────────────────┘  │
+│                                                       │
+│                    guiuser                             │
+│                                                       │
+└───────────────────────────┬───────────────────────────┘
+                            │
+                            ▼
+                    Persistent Volume
+                       gui_home
+                    /home/guiuser
 ```
 
-## Project Structure
+---
+
+# Project Structure
 
 ```text
-nexus-wine/
+ubuntu-gui/
 ├── Dockerfile
 ├── docker-compose.yml
-├── entrypoint.sh
-├── install-app.sh
-├── apps/
-│   └── application.exe
+├── start-vnc.sh
+├── 7z2602.exe
 └── README.md
 ```
 
-## Requirements
+### Files
 
-### Linux Server
+| File                 | Description                                             |
+| -------------------- | ------------------------------------------------------- |
+| `Dockerfile`         | Builds the Ubuntu 24.04 GUI image                       |
+| `docker-compose.yml` | Defines the container, port, volume, and restart policy |
+| `start-vnc.sh`       | Starts the VNC server and XFCE desktop                  |
+| `7z2602.exe`         | Windows application used for Wine testing               |
+| `README.md`          | Project documentation                                   |
 
-The image can be built and run with:
+---
 
-* Podman
-* Podman Compose
+# Requirements
 
-Docker users can also use:
+## Server
+
+The project can be run using:
 
 * Docker
 * Docker Compose
+* Podman
+* Podman Compose
 
-### Client
+Check Podman:
 
-For graphical access, install a VNC client on your workstation.
-
-Examples:
-
-* TigerVNC Viewer
-* RealVNC Viewer
-* Remmina
-
-## Build the Image
-
-Build the image with Podman:
-
-podman build -t nexus-wine:3.95.0-07 .
+```bash
+podman --version
 ```
 
-Or with Compose:
+Check Compose:
 
+```bash
+podman compose version
+```
+
+For Docker:
+
+```bash
+docker --version
+docker compose version
+```
+
+---
+
+# Build the Image
+
+## Podman
+
+From the project directory:
+
+```bash
+cd ~/mohammad/ubuntu
+```
+
+Build the image:
+
+```bash
 podman compose build
 ```
 
-## Start the Container
+Or build directly:
 
-Start the container in detached mode:
+```bash
+podman build -t ubuntu-gui .
+```
 
+## Docker
+
+```bash
+docker compose build
+```
+
+Or:
+
+```bash
+docker build -t ubuntu-gui .
+```
+
+---
+
+# Start the Container
+
+## Podman
+
+```bash
 podman compose up -d
 ```
 
-Check the running container:
-
-podman ps
-```
-
-Check the container logs:
-
-podman logs -f nexus-wine
-```
-
-## Ports
-
-| Port | Service | Description                    |
-| ---: | ------- | ------------------------------ |
-| 8081 | Nexus   | Nexus Repository Web Interface |
-| 5901 | VNC     | XFCE graphical desktop         |
-
-## Access Nexus
-
-Open the following address from your browser:
-
-```text
-http://SERVER_IP:8081
-```
-
-Example:
-
-```text
-http://172.18.115.50:8081
-```
-
-## Access the GUI with VNC
-
-Connect your VNC client to:
-
-```text
-SERVER_IP:5901
-```
-
-Example:
-
-```text
-172.18.115.50:5901
-```
-
-The default password configured in `docker-compose.yml` is:
-
-```text
-ChangeMe123!
-```
-
-**Change this password before using the environment in production.**
-
-## Run Windows Applications
-
-Windows `.exe` applications can be executed through Wine.
-
-For example:
+## Docker
 
 ```bash
-wine /apps/application.exe
+docker compose up -d
 ```
-
-You can also launch the application from the XFCE graphical desktop through the VNC session.
-
-## Copy an EXE into the Container
-
-Copy an application into the running container:
-
-```bash
-podman cp application.exe nexus-wine:/apps/application.exe
-```
-
-Enter the container:
-
-```bash
-podman exec -it nexus-wine bash
-```
-
-Run the application:
-
-```bash
-wine /apps/application.exe
-```
-
-## Mount Applications from the Host
-
-Instead of copying applications into the container, you can mount an application directory.
-
-Example:
-
-```yaml
-volumes:
-  - ./apps:/apps
-  - nexus-data:/nexus-data
-  - wine-data:/wine
-```
-
-Host directory:
-
-```text
-apps/
-├── application1.exe
-├── application2.exe
-└── application3.exe
-```
-
-Inside the container:
-
-```text
-/apps/application1.exe
-/apps/application2.exe
-/apps/application3.exe
-```
-
-This allows `.exe` applications to be updated without rebuilding the Docker image.
-
-## Persistent Storage
-
-The container uses named volumes for persistent data.
-
-### Nexus Data
-
-```text
-nexus-data:/nexus-data
-```
-
-Nexus stores its application and repository data under:
-
-```text
-/nexus-data
-```
-
-### Wine Data
-
-```text
-wine-data:/wine
-```
-
-Wine stores its environment under:
-
-```text
-/wine
-```
-
-List volumes:
-
-```bash
-podman volume ls
-```
-
-Inspect the Nexus volume:
-
-```bash
-podman volume inspect nexus-wine_nexus-data
-```
-
-Inspect the Wine volume:
-
-```bash
-podman volume inspect nexus-wine_wine-data
-```
-
-## Check Nexus Status
 
 Check the container:
 
@@ -280,44 +182,389 @@ Check the container:
 podman ps
 ```
 
-Check Nexus logs:
+Expected container:
 
-```bash
-podman logs nexus-wine
+```text
+ubuntu-gui
 ```
 
-Follow the logs:
+---
 
-```bash
-podman logs -f nexus-wine
+# Container Configuration
+
+The Compose file creates:
+
+```text
+Container name: ubuntu-gui
+VNC port:       5901
+User:           guiuser
+Home directory: /home/guiuser
+Volume:         gui_home
 ```
 
-Check whether Nexus is listening on port 8081:
+The VNC port is published as:
 
-```bash
-podman exec nexus-wine ss -lntp
+```text
+5901:5901
 ```
 
-## Check VNC
+This means the host's TCP port `5901` is forwarded to the container's TCP port `5901`.
 
-Check whether VNC is listening:
+---
+
+# Access the XFCE Desktop
+
+Install a VNC client on your workstation.
+
+Examples:
+
+* TigerVNC Viewer
+* RealVNC Viewer
+* Remmina
+
+Connect to:
+
+```text
+SERVER_IP:5901
+```
+
+For example:
+
+```text
+172.18.115.50:5901
+```
+
+---
+
+# VNC Credentials
+
+The Dockerfile creates the user:
+
+```text
+guiuser
+```
+
+The initial Linux password configured by the Dockerfile is:
+
+```text
+guiuser
+```
+
+**Change the password before using this container in a production environment.**
+
+The relevant Dockerfile configuration is:
+
+```dockerfile
+RUN useradd -m -s /bin/bash guiuser && \
+    echo "guiuser:guiuser" | chpasswd && \
+    usermod -aG sudo guiuser
+```
+
+---
+
+# Run Windows Applications with Wine
+
+The image contains:
+
+```text
+wine64
+wine32
+winbind
+```
+
+Check Wine:
 
 ```bash
-podman exec nexus-wine ss -lntp | grep 5901
+podman exec -it ubuntu-gui wine --version
+```
+
+You can also enter the container:
+
+```bash
+podman exec -it ubuntu-gui bash
+```
+
+Then:
+
+```bash
+wine --version
+```
+
+---
+
+# 7-Zip Application
+
+The project currently copies:
+
+```text
+7z2602.exe
+```
+
+into:
+
+```text
+/home/guiuser/7z2602.exe
+```
+
+The file is copied by the Dockerfile:
+
+```dockerfile
+COPY 7z2602.exe /home/guiuser/7z2602.exe
+```
+
+Because the container runs as `guiuser`, the application belongs to that user.
+
+Inside the container:
+
+```bash
+ls -lh /home/guiuser/7z2602.exe
+```
+
+Run it with:
+
+```bash
+wine /home/guiuser/7z2602.exe
+```
+
+You can also launch it from the XFCE graphical desktop.
+
+---
+
+# Installing Other Windows Applications
+
+You can copy another `.exe` file into the container.
+
+For example:
+
+```bash
+podman cp application.exe ubuntu-gui:/home/guiuser/application.exe
+```
+
+Enter the container:
+
+```bash
+podman exec -it ubuntu-gui bash
+```
+
+Run it:
+
+```bash
+wine /home/guiuser/application.exe
+```
+
+Alternatively, applications can be placed in the project directory and copied into the image through the Dockerfile.
+
+---
+
+# Persistent Home Directory
+
+The Compose file defines:
+
+```yaml
+volumes:
+  - gui_home:/home/guiuser
+```
+
+This creates a persistent volume:
+
+```text
+gui_home
+```
+
+mounted at:
+
+```text
+/home/guiuser
+```
+
+This means files stored in the user's home directory can survive container recreation.
+
+List volumes:
+
+```bash
+podman volume ls
+```
+
+Inspect the volume:
+
+```bash
+podman volume inspect ubuntu_gui_gui_home
+```
+
+The exact volume name may vary depending on the Compose project name.
+
+---
+
+# Important Note About the Persistent Volume
+
+The Dockerfile copies `7z2602.exe` into:
+
+```text
+/home/guiuser/7z2602.exe
+```
+
+However, the Compose volume:
+
+```yaml
+- gui_home:/home/guiuser
+```
+
+is mounted **over the entire `/home/guiuser` directory** when the container starts.
+
+Therefore, if the volume already exists, files created in the image under `/home/guiuser` may be hidden by the mounted volume.
+
+If `7z2602.exe` is not visible after starting the container, check:
+
+```bash
+podman exec -it ubuntu-gui ls -lah /home/guiuser
+```
+
+For a more reliable design, application files can be stored outside the mounted home directory, for example:
+
+```text
+/apps/7z2602.exe
+```
+
+or mounted from the host.
+
+---
+
+# Check Container Status
+
+```bash
+podman ps
+```
+
+For all containers:
+
+```bash
+podman ps -a
+```
+
+---
+
+# Check Logs
+
+View logs:
+
+```bash
+podman logs ubuntu-gui
+```
+
+Follow logs:
+
+```bash
+podman logs -f ubuntu-gui
+```
+
+The logs are particularly useful for troubleshooting TigerVNC and XFCE startup problems.
+
+---
+
+# Check VNC Port
+
+Inside the container:
+
+```bash
+podman exec ubuntu-gui ss -lntp | grep 5901
+```
+
+If `ss` is unavailable:
+
+```bash
+podman exec ubuntu-gui netstat -lntp | grep 5901
+```
+
+On the host:
+
+```bash
+ss -lntp | grep 5901
+```
+
+Expected host-side result should show port `5901` listening.
+
+---
+
+# Check XFCE
+
+Enter the container:
+
+```bash
+podman exec -it ubuntu-gui bash
+```
+
+Check the XFCE installation:
+
+```bash
+which startxfce4
 ```
 
 Expected:
 
 ```text
-LISTEN 0  ... 0.0.0.0:5901
+/usr/bin/startxfce4
 ```
 
-## Enter the Container
+---
+
+# Check TigerVNC
+
+Inside the container:
+
+```bash
+which vncserver
+```
+
+Check the installed version:
+
+```bash
+vncserver --version
+```
+
+Check running VNC processes:
+
+```bash
+ps aux | grep -i vnc
+```
+
+---
+
+# Enter the Container
 
 Open a shell:
 
 ```bash
-podman exec -it nexus-wine bash
+podman exec -it ubuntu-gui bash
+```
+
+Check the current user:
+
+```bash
+whoami
+```
+
+Expected:
+
+```text
+guiuser
+```
+
+Check the home directory:
+
+```bash
+echo $HOME
+```
+
+Expected:
+
+```text
+/home/guiuser
+```
+
+Check Ubuntu:
+
+```bash
+cat /etc/os-release
 ```
 
 Check Wine:
@@ -326,108 +573,230 @@ Check Wine:
 wine --version
 ```
 
-Check Java:
+---
 
-```bash
-java -version
-```
+# Stop the Container
 
-Check Nexus:
-
-```bash
-/opt/nexus/bin/nexus status
-```
-
-## Stop the Container
+Stop the environment:
 
 ```bash
 podman compose down
 ```
 
-The named volumes will remain intact.
+Or:
 
-Start again:
+```bash
+docker compose down
+```
+
+The persistent `gui_home` volume is not removed.
+
+---
+
+# Restart the Container
+
+```bash
+podman compose restart
+```
+
+Or:
+
+```bash
+docker compose restart
+```
+
+---
+
+# Start Again
 
 ```bash
 podman compose up -d
 ```
 
-Your Nexus and Wine data will remain available.
+Check:
 
-## Remove the Container and Volumes
+```bash
+podman ps
+```
 
-**Warning:** This permanently removes the persistent Nexus and Wine data.
+---
+
+# Remove the Container and Volume
+
+To remove the container and persistent volume:
 
 ```bash
 podman compose down -v
 ```
 
-Do not use this command if you need to preserve your Nexus repositories or Wine environment.
+**Warning:** This removes the `gui_home` volume and can permanently delete data stored in `/home/guiuser`.
 
-## Installation Prompts
+Do not use `-v` if you want to preserve the user's home directory.
 
-Linux package installation is configured to run non-interactively.
+---
 
-The Dockerfile uses:
+# Firewall
 
-```dockerfile
-ENV DEBIAN_FRONTEND=noninteractive
-```
-
-and:
+If the server uses `firewalld`, allow TCP port `5901` if remote VNC access is required:
 
 ```bash
-apt-get install -y
+firewall-cmd --permanent --add-port=5901/tcp
+firewall-cmd --reload
 ```
 
-Therefore, you normally do not need to manually type:
+Verify:
 
-```text
-Y
+```bash
+firewall-cmd --list-ports
 ```
 
-during the Docker image build.
+For production environments, do **not** expose VNC directly to the public Internet.
 
-Windows `.exe` installers are different. Wine applications may display graphical installation dialogs. These can be handled through the VNC desktop.
+Restrict access to trusted networks or use a VPN/SSH tunnel.
 
-## Security
+---
 
-For production environments:
+# Security
 
-1. Change the VNC password.
-2. Do not expose port `5901` directly to the public internet.
-3. Restrict VNC access using your firewall.
-4. Use a VPN or private management network for VNC.
-5. Use HTTPS/reverse proxy for Nexus when required.
-6. Use strong credentials for Nexus.
-7. Regularly back up the `nexus-data` volume.
+This project is primarily intended for testing, development, and controlled infrastructure environments.
 
-Example firewall concept:
+Before production use:
 
-```text
-Internet
-   │
-   X  TCP 5901
-   │
-Private Network
-   │
-   └── VNC Client
+1. Change the `guiuser` password.
+2. Change the VNC password configured by `start-vnc.sh`.
+3. Do not expose TCP `5901` to the public Internet.
+4. Restrict VNC access using firewall rules.
+5. Prefer VPN or SSH tunneling for remote VNC access.
+6. Avoid storing credentials in Git.
+7. Review the applications being executed through Wine.
+8. Keep the Ubuntu packages updated.
+9. Rebuild the image periodically to receive security updates.
+
+---
+
+# Troubleshooting
+
+## Container does not start
+
+Check:
+
+```bash
+podman ps -a
 ```
 
-## Technology Stack
+Then:
 
-| Technology       | Version / Purpose                 |
-| ---------------- | --------------------------------- |
-| Ubuntu           | 24.04                             |
-| Nexus Repository | 3.95.0-07                         |
-| Java             | OpenJDK 17                        |
-| Wine             | Windows application compatibility |
-| XFCE             | Linux graphical desktop           |
-| TigerVNC         | Remote graphical access           |
-| Podman           | Container runtime                 |
-| Docker Compose   | Container orchestration           |
+```bash
+podman logs ubuntu-gui
+```
 
-## Useful Commands
+---
+
+## VNC connection fails
+
+Check:
+
+```bash
+podman exec ubuntu-gui ss -lntp | grep 5901
+```
+
+Check the host:
+
+```bash
+ss -lntp | grep 5901
+```
+
+Check the container logs:
+
+```bash
+podman logs ubuntu-gui
+```
+
+Check the VNC startup script:
+
+```bash
+podman exec ubuntu-gui cat /usr/local/bin/start-vnc.sh
+```
+
+---
+
+## XFCE does not start
+
+Check:
+
+```bash
+podman logs ubuntu-gui
+```
+
+Then enter the container:
+
+```bash
+podman exec -it ubuntu-gui bash
+```
+
+Check:
+
+```bash
+which startxfce4
+```
+
+---
+
+## Wine does not start
+
+Check:
+
+```bash
+podman exec -it ubuntu-gui wine --version
+```
+
+Check Wine binaries:
+
+```bash
+which wine
+which wine64
+which wine32
+```
+
+Check whether the application exists:
+
+```bash
+podman exec ubuntu-gui ls -lah /home/guiuser/
+```
+
+---
+
+## 7-Zip EXE is missing
+
+Check:
+
+```bash
+podman exec ubuntu-gui ls -lah /home/guiuser/7z2602.exe
+```
+
+Remember that the Compose volume:
+
+```yaml
+- gui_home:/home/guiuser
+```
+
+mounts over the image's `/home/guiuser` directory.
+
+If necessary, copy the application into the running container:
+
+```bash
+podman cp 7z2602.exe ubuntu-gui:/home/guiuser/7z2602.exe
+```
+
+Then:
+
+```bash
+podman exec ubuntu-gui ls -lh /home/guiuser/7z2602.exe
+```
+
+---
+
+# Useful Commands
 
 ### Build
 
@@ -459,38 +828,81 @@ podman compose restart
 podman ps
 ```
 
+### All containers
+
+```bash
+podman ps -a
+```
+
 ### Logs
 
 ```bash
-podman logs -f nexus-wine
+podman logs -f ubuntu-gui
 ```
 
 ### Shell
 
 ```bash
-podman exec -it nexus-wine bash
+podman exec -it ubuntu-gui bash
 ```
 
-### Volumes
+### Check VNC
+
+```bash
+podman exec ubuntu-gui ss -lntp | grep 5901
+```
+
+### Check Wine
+
+```bash
+podman exec ubuntu-gui wine --version
+```
+
+### Copy EXE
+
+```bash
+podman cp application.exe ubuntu-gui:/home/guiuser/application.exe
+```
+
+### List volumes
 
 ```bash
 podman volume ls
 ```
 
-## Repository
+---
 
-**Official GitHub Repository**
+# Technology Stack
+
+| Technology | Version / Purpose                  |
+| ---------- | ---------------------------------- |
+| Ubuntu     | 24.04                              |
+| XFCE       | Desktop environment                |
+| TigerVNC   | VNC server                         |
+| Wine       | Windows application compatibility  |
+| Wine64     | 64-bit Windows application support |
+| Wine32     | 32-bit Windows application support |
+| Winbind    | Windows compatibility support      |
+| DBus       | Desktop session support            |
+| Podman     | Container runtime                  |
+| Docker     | Alternative container runtime      |
+| Compose    | Container orchestration            |
+
+---
+
+# Repository
+
+GitHub repository:
 
 ```text
 https://github.com/Mohammadjongholi/nexsus-dockerfile
 ```
 
-## License
+---
+
+# License
 
 This project is provided for infrastructure, testing, and educational purposes.
 
-Nexus Repository, Ubuntu, Wine, XFCE, and TigerVNC are separate projects and are subject to their respective licenses and terms.
-
-```
-```
+Ubuntu, XFCE, TigerVNC, Wine, and other included software are separate projects and are subject to their respective licenses and terms.
 
